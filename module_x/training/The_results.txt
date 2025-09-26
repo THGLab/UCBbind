@@ -1,0 +1,14 @@
+results on test set
+Test_set--Loss:5.24791;MSE:5.27011;RMSE2.29567;MAE:1.88717;Pearson:0.66562;R2:0.36235.
+The results on PDBbind:
+MSE:5.2701
+MAE:1.8872
+R2:0.3624
+RMSE(std):2.2957
+Pearson(std):0.6656
+results on 1th fold
+Train_set--Loss:2.39994;MSE:2.39991;RMSE1.54916;MAE:1.21460;Pearson:0.64967;R2:0.39509.
+Valid_set--Loss:2.42655;MSE:2.42639;RMSE1.55769;MAE:1.22004;Pearson:0.64440;R2:0.38754.
+results on 1th fold
+Train_set--Loss:0.33524;MSE:0.33524;RMSE0.57900;MAE:0.44121;Pearson:0.95728;R2:0.91550.
+Valid_set--Loss:1.05223;MSE:1.05217;RMSE1.02576;MAE:0.75373;Pearson:0.85751;R2:0.73441.
