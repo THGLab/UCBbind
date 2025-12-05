@@ -1,8 +1,8 @@
 import random,os
 import pandas as pd
 from datetime import datetime
-from dataset import CustomDataSet, collate_fn
-from model import AttentionDTA
+from module_x.dataset import CustomDataSet, collate_fn
+from module_x.model import AttentionDTA
 from torch.utils.data import DataLoader
 from prefetch_generator import BackgroundGenerator
 from tqdm import tqdm

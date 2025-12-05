@@ -14,7 +14,7 @@ def load_data(csv_path):
     return df
 
 
-def train_ridge_model(df, features, label, alpha=1.0):
+def train_ridge_model(df, features, label, alpha=483):
     df = df.dropna(subset=features + ['Residuals'])
     X = df[features]
     y = df['Residuals']
@@ -49,7 +49,7 @@ def save_pickle(obj, path):
 
 
 def main():
-    df = load_data("residual_predictor/training_data/revised_rr_predictions.csv")
+    df = load_data("residual_predictor/training_data/rr_predictions.csv")
 
     # Filter to just the joint module
     joint_df = df[df['Module'] == 'y-joint']

@@ -72,13 +72,18 @@ if __name__ == '__main__':
     ref_pairs = pd.Series(list(zip(ref_df['Sequence'], ref_df['SMILES'])))
     orig_size = len(ref_df)
 
-    test_df = pd.read_csv('datasets/Moonshot.csv')
+    # To remove test set from the reference set 
+
+    test_df = pd.read_csv('datasets/PDBbind.csv')
+    test_df = test_df[test_df['Split']=='Test']
     test_pairs = set(zip(test_df['Sequence'], test_df['SMILES']))
     ref_df = ref_df[~ref_pairs.isin(test_pairs)]
 
     removed_count = orig_size - len(ref_df)
     print(f"Dropped {removed_count} rows from reference set")
     print(f"New reference size: {len(ref_df)}")
+
+    ###########################################
 
     fasta_file = "ref_database.fasta"
     db_name = "module_y/mmseqs/refDB/refDB"

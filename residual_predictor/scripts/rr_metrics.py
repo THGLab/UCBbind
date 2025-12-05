@@ -60,5 +60,5 @@ if __name__ == '__main__':
     from sklearn.metrics import mean_absolute_error, root_mean_squared_error
     from scipy.stats import pearsonr
 
-    results_csv = '../training_data/revised_rr_predictions.csv'
+    results_csv = '../training_data/rr_predictions.csv'
     evaluate_module_y_predictions(results_csv)

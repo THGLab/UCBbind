@@ -23,13 +23,13 @@ from module_y.sequencesearch import get_similar_proteins
 from module_y.smilessearch import get_similar_ligands
 from .rr_metrics import evaluate_module_y_predictions
 
-ref_fp = 'datasets/BindingDB.csv'
+ref_fp = '../../datasets_aff/BindingDB.csv'
 ref_df = pd.read_csv(ref_fp)
 orig_size = ref_df.shape[0]
 
-test_fp = 'datasets/PDBbind.csv'
+test_fp = '../../datasets_aff/PDBbind.csv'
 test_df = pd.read_csv(test_fp)
-#test_df = test_df[test_df['Split'].isin(['Train', 'Val'])]
+test_df = test_df[test_df['Split'].isin(['Train', 'Val'])]
 #test_df = test_df.iloc[:2000]
 test_size = test_df.shape[0]
 
@@ -39,6 +39,10 @@ ref_df = ref_df[~ref_pairs.isin(test_pairs)]
 removed_count = orig_size - len(ref_df)
 print(f"Dropped {removed_count} rows from reference set")
 print(f"New reference size: {len(ref_df)}")
+
+alpha = 3
+beta = 3
+min_fraction = 0.65
 
 ref_pkl = 'module_y/ref_fingerprints.pkl'
 
@@ -66,10 +70,16 @@ def joint_prediction(sim_sequences, sim_smiles, ref_df):
     # Add similarity weights
     filtered_df['seq_weight'] = filtered_df['Sequence'].map(sim_sequences)
     filtered_df['smi_weight'] = filtered_df['SMILES'].map(sim_smiles)
-    filtered_df['pair_weight'] = filtered_df['seq_weight'] + filtered_df['smi_weight']
+    filtered_df['pair_weight'] = filtered_df['seq_weight'] ** alpha * filtered_df['smi_weight'] ** beta
+
+    max_pair_weight = filtered_df['pair_weight'].max()
+    filtered_df = filtered_df[filtered_df['pair_weight'] >= min_fraction * max_pair_weight]
 
     # Compute weighted average
     total_weight = filtered_df['pair_weight'].sum()
+    if total_weight < 1e-12:
+        return np.nan, np.nan, np.nan, np.nan
+
     weighted_mean = (filtered_df['pair_weight'] * filtered_df['Value']).sum() / total_weight if total_weight > 0 else np.nan
 
     # Weighted variance (uncertainty)
@@ -79,7 +89,6 @@ def joint_prediction(sim_sequences, sim_smiles, ref_df):
     pw = filtered_df['pair_weight'].values
     pw_probs = pw / pw.sum()
 
-    max_pair_weight = filtered_df['pair_weight'].max()
     dominance_ratio = max_pair_weight / total_weight
     effective_n = 1 / np.sum(pw_probs ** 2) if pw_probs.size > 0 else 0.0
 
@@ -162,7 +171,7 @@ def process_row(row, blast_score, ligand_similarity, k, module_x_only):
 def write_to_csv(df, blast_score, ligand_similarity, blast_score_values, ligand_similarity_values, output_file):
     os.makedirs('residual_predictor/training_data', exist_ok=True)
     if len(blast_score_values)== 1 and len(ligand_similarity_values)==1:
-        filename = output_file if output_file else f'residual_predictor/training_data/revised_rr_predictions.csv'
+        filename = output_file if output_file else f'residual_predictor/training_data/rr_predictions.csv'
     else:
         filename = output_file if output_file else f'residual_predictor/training_data/rr_predictions_P{blast_score}L{int(ligand_similarity * 100)}.csv'
     df.to_csv(filename, mode='w', header=True, index=False)
@@ -174,7 +183,7 @@ def main(blast_score_values, ligand_similarity_values, k, module_x_only, output_
             total_valid_pairs = 0
             print(f"Blast Score: {blast_score}, Ligand Similarity: {ligand_similarity}")
 
-            with concurrent.futures.ProcessPoolExecutor(max_workers=32) as executor:
+            with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
                 process_row_partial = partial(
                     process_row,
                     blast_score=blast_score,
@@ -202,13 +211,13 @@ def main(blast_score_values, ligand_similarity_values, k, module_x_only, output_
             else:
                 print("No valid results for this configuration.")
 
-    results_csv = 'residual_predictor/training_data/revised_rr_predictions.csv'
+    results_csv = 'residual_predictor/training_data/rr_predictions.csv'
     evaluate_module_y_predictions(results_csv)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process data with varying BLAST score and ligand similarity values')
-    parser.add_argument('--blast_score_values', nargs='+', type=int, default=[0.40], help = 'list of BLAST score values')
-    parser.add_argument('--ligand_similarity_values', nargs='+', type=float, default=[0.70], help='list of ligand similarity values')
+    parser.add_argument('--blast_score_values', nargs='+', type=int, default=[0.30], help = 'list of BLAST score values')
+    parser.add_argument('--ligand_similarity_values', nargs='+', type=float, default=[0.60], help='list of ligand similarity values')
     parser.add_argument('--num_nearest_neighbors', type=int, default=30, help='maximum number of ligand nearest neighbors')
     parser.add_argument('--module_x_only', action='store_true', help='If true, bypass similarity checks and use module_x only')
     parser.add_argument('--output_file', type=str, default=None, help='custom output file name')
