@@ -74,14 +74,14 @@ if __name__ == '__main__':
 
     # To remove test set from the reference set 
 
-    test_df = pd.read_csv('datasets/PDBbind.csv')
-    test_df = test_df[test_df['Split']=='Test']
-    test_pairs = set(zip(test_df['Sequence'], test_df['SMILES']))
-    ref_df = ref_df[~ref_pairs.isin(test_pairs)]
+    # test_df = pd.read_csv('datasets/PDBbind.csv')
+    # test_df = test_df[test_df['Split']=='Test']
+    # test_pairs = set(zip(test_df['Sequence'], test_df['SMILES']))
+    # ref_df = ref_df[~ref_pairs.isin(test_pairs)]
 
-    removed_count = orig_size - len(ref_df)
-    print(f"Dropped {removed_count} rows from reference set")
-    print(f"New reference size: {len(ref_df)}")
+    # removed_count = orig_size - len(ref_df)
+    # print(f"Dropped {removed_count} rows from reference set")
+    # print(f"New reference size: {len(ref_df)}")
 
     ###########################################
 

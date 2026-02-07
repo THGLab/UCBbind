@@ -28,9 +28,9 @@ After downloading ``BindingDB.csv`` and placing in the ``datasets`` folder, you 
 
 Predictions can be run using `python FEpred.py`. 
 
-The script expects a CSV file with the following columns: `Sequence`, `SMILES`, and `Value`. These describe the protein sequence of the query, the ligand SMILES of the query, and the experimental binding free energy in positive kcal/mol.
+The script expects a CSV file with the following columns: `Sequence` and `SMILES`. These describe the protein sequence of the query and the ligand SMILES of the query. Optionally, the CSV may include a `Value` column containing the experimental binding free energy in positive kcal/mol. If the `Value` column is present, the script will compute and display evaluation metrics comparing predictions to ground truth. If the `Value` column is absent, the script will still generate predictions but will skip metric computation.
 
-The default test set used in `FEpred.py` is: `test_fp = 'datasets/PDBbind.csv'. Note that in ``Y_prep.py``, rows in BindingDB that are present in the test set are filtered out for reproducibility. Users do not need to do this for normal predictions.
+The default test set used in `FEpred.py` is: `test_fp = 'datasets/PDBbind.csv'. 
 
 ## Binder v Nonbinder Classification Accuracy
 

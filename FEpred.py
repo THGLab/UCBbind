@@ -27,18 +27,22 @@ ref_fp = 'datasets/BindingDB.csv'
 ref_df = pd.read_csv(ref_fp)
 orig_size = ref_df.shape[0]
 
-test_fp = 'datasets/PDBbind.csv'
+test_fp = '/global/scratch/users/justinpurnomo/cache/ucbbind_gnina_boltz_on_del_hits/ucbbind_validity_check/PGK2_1k_chembl.csv'
+base = os.path.basename(test_fp)
+stem = os.path.splitext(base)[0]
+
 test_df = pd.read_csv(test_fp)
-test_df = test_df[test_df['Split']=='Test'].reset_index(drop=True)
+
+# test_df = test_df[test_df['Split']=='Test'].reset_index(drop=True)
 test_size = test_df.shape[0]
 
 # Remove test pairs from reference
-test_pairs = set(zip(test_df['Sequence'], test_df['SMILES']))
-ref_pairs = pd.Series(list(zip(ref_df['Sequence'], ref_df['SMILES'])))
-ref_df = ref_df[~ref_pairs.isin(test_pairs)]
-removed_count = orig_size - len(ref_df)
-print(f"Dropped {removed_count} rows from reference set")
-print(f"New reference size: {len(ref_df)}")
+# test_pairs = set(zip(test_df['Sequence'], test_df['SMILES']))
+# ref_pairs = pd.Series(list(zip(ref_df['Sequence'], ref_df['SMILES'])))
+# ref_df = ref_df[~ref_pairs.isin(test_pairs)]
+# removed_count = orig_size - len(ref_df)
+# print(f"Dropped {removed_count} rows from reference set")
+# print(f"New reference size: {len(ref_df)}")
 
 # -----------------------------
 # Load fingerprints and residual model
@@ -123,10 +127,10 @@ def batch_modx_predictions(model, sequences, smiles, device, max_seq_len, max_sm
 # -----------------------------
 # Per-row processing
 # -----------------------------
-def process_row(row, module_x_pred, blast_score, ligand_similarity, module_x_only):
+def process_row(row, module_x_pred, blast_score, ligand_similarity, module_x_only, has_ground_truth):
     query_seq = row['Sequence']
     query_smiles = row['SMILES']
-    true_value = row['Value']
+    true_value = row['Value'] if has_ground_truth else None
 
     with tempfile.TemporaryDirectory() as tmp_dir:
 
@@ -163,25 +167,37 @@ def process_row(row, module_x_pred, blast_score, ligand_similarity, module_x_onl
             valid_pair = 0
             mod = 'x'
 
-    return {
+    result = {
         'Sequence': query_seq,
         'SMILES': query_smiles,
         'Weighted Mean': weighted_mean,
         'Module Y Pred': avg_fe if valid_pair else None,
         'Module X Pred': modx_pred,
-        'Actual Free Energy': true_value,
         'Predicted Free Energy': avg_fe,
         'Module': mod,
         'Pair Count': pair_count,
         'Protein Count': sim_protein_count,
         'Ligand Count': sim_ligand_count
-    }, valid_pair
+    }
+    
+    # Only add ground truth if it exists
+    if has_ground_truth:
+        result['Actual Free Energy'] = true_value
+    
+    return result, valid_pair
 
 # -----------------------------
 # Main
 # -----------------------------
 def main(blast_score_values, ligand_similarity_values, module_x_only, output_file, model, device,
          MAX_SEQ_LEN, MAX_SMI_LEN, batch_size=64):
+
+    # Check if ground truth column exists
+    has_ground_truth = 'Value' in test_df.columns
+    if has_ground_truth:
+        print("Ground truth 'Value' column detected. Evaluation metrics will be computed.")
+    else:
+        print("No 'Value' column detected. Predictions will be generated without evaluation metrics.")
 
     # Batch Module X predictions
     print("Batch predicting Module X...")
@@ -199,23 +215,28 @@ def main(blast_score_values, ligand_similarity_values, module_x_only, output_fil
                                         module_x_pred=module_x_preds,
                                         blast_score=blast_score,
                                         ligand_similarity=ligand_similarity,
-                                        module_x_only=module_x_only)
+                                        module_x_only=module_x_only,
+                                        has_ground_truth=has_ground_truth)
 
                 results_valid = list(tqdm(executor.map(process_partial, [row for _, row in test_df.iterrows()]),
                                             total=len(test_df), desc="Processing", ncols=100))
                 results, valid_pairs = zip(*results_valid)
                 final_results = pd.DataFrame(results)
                 os.makedirs('predictions', exist_ok=True)
-                filename = output_file if output_file else f'predictions/predictions.csv'
+                filename = output_file if output_file else f'predictions/{stem}_predictions.csv'
                 final_results.to_csv(filename, index=False)
 
                 total_valid_pairs += sum(valid_pairs)
                 print(f"Total valid pairs so far: {total_valid_pairs}/{test_size}")
     
 
-    # Compute metrics
-    dfs = load_data('predictions')
-    display_metrics(dfs)
+    # Compute metrics only if ground truth is available
+    if has_ground_truth:
+        print("\nComputing evaluation metrics...")
+        dfs = load_data('predictions')
+        display_metrics(dfs)
+    else:
+        print("\nSkipping evaluation metrics (no ground truth 'Value' column found).")
 
 # -----------------------------
 # Entry point
