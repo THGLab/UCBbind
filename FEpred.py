@@ -27,7 +27,7 @@ ref_fp = 'datasets/BindingDB.csv'
 ref_df = pd.read_csv(ref_fp)
 orig_size = ref_df.shape[0]
 
-test_fp = '/global/scratch/users/justinpurnomo/cache/ucbbind_gnina_boltz_on_del_hits/ucbbind_validity_check/PGK2_1k_chembl.csv'
+test_fp = 'path/to/test/set'
 base = os.path.basename(test_fp)
 stem = os.path.splitext(base)[0]
 
